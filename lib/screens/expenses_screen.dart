@@ -29,17 +29,25 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   final TextEditingController amountController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController limitController = TextEditingController();
+  String selectedCategory = "Food & Drinks"; // Default category
   DateTime? selectedDate;
+
+  final List<String> categories = [
+    "Food & Drinks",
+    "Vehicle & Transport",
+    "Shopping",
+    "Entertainment",
+  ];
 
   @override
   void initState() {
     super.initState();
-    addTransaction(100.0, "Initial Balance", DateTime.now());
+    addTransaction(100.0, "Initial Balance", DateTime.now(), "Initial");
   }
 
-  void addTransaction(double amount, String description, DateTime date) {
+  void addTransaction(double amount, String description, DateTime date, String category) {
     setState(() {
-      transactions.add(Transaction(amount, description, date));
+      transactions.add(Transaction(amount, description, date, category));
       totalSpent += amount;
     });
     _checkMonthlyLimit();
@@ -139,6 +147,25 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
         ),
         SizedBox(height: 20),
+        DropdownButtonFormField<String>(
+          value: selectedCategory,
+          items: categories.map((String category) {
+            return DropdownMenuItem<String>(
+              value: category,
+              child: Text(category),
+            );
+          }).toList(),
+          onChanged: (newValue) {
+            setState(() {
+              selectedCategory = newValue!;
+            });
+          },
+          decoration: InputDecoration(
+            labelText: 'Category',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 20),
         Row(
           children: [
             Expanded(
@@ -161,7 +188,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             double amount = double.tryParse(amountController.text) ?? 0.0;
             String description = descriptionController.text;
             DateTime date = selectedDate ?? DateTime.now();
-            addTransaction(amount, description, date);
+            addTransaction(amount, description, date, selectedCategory);
             amountController.clear();
             descriptionController.clear();
             setState(() {
@@ -211,7 +238,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         return ListTile(
           title: Text('Amount: \$${transaction.amount.toStringAsFixed(2)}'),
           subtitle: Text(
-              'Description: ${transaction.description}\nDate: ${transaction.date.toLocal().toString().split(' ')[0]}'),
+              'Description: ${transaction.description}\nDate: ${transaction.date.toLocal().toString().split(' ')[0]}\nCategory: ${transaction.category}'),
         );
       },
     );
@@ -222,6 +249,7 @@ class Transaction {
   double amount;
   String description;
   DateTime date;
+  String category;
 
-  Transaction(this.amount, this.description, this.date);
+  Transaction(this.amount, this.description, this.date, this.category);
 }
