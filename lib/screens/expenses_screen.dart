@@ -25,8 +25,10 @@ class ExpensesScreen extends StatefulWidget {
 class _ExpensesScreenState extends State<ExpensesScreen> {
   List<Transaction> transactions = [];
   double totalSpent = 0.0;
+  double monthlyLimit = 500.0; // Default limit
   final TextEditingController amountController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController limitController = TextEditingController();
   DateTime? selectedDate;
 
   @override
@@ -40,6 +42,36 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       transactions.add(Transaction(amount, description, date));
       totalSpent += amount;
     });
+    _checkMonthlyLimit();
+  }
+
+  void _checkMonthlyLimit() {
+    double monthlySpent = transactions
+        .where((transaction) => transaction.date.month == DateTime.now().month)
+        .fold(0.0, (sum, transaction) => sum + transaction.amount);
+
+    if (monthlySpent >= monthlyLimit) {
+      _showLimitAlert();
+    }
+  }
+
+  void _showLimitAlert() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Limit Reached'),
+          content: Text(
+              'You have reached your monthly limit of \$${monthlyLimit.toStringAsFixed(2)}.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _pickDate(BuildContext context) async {
@@ -70,8 +102,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           children: [
             _buildTransactionInput(),
             SizedBox(height: 20),
+            _buildLimitInput(),
+            SizedBox(height: 20),
             Text('Total Spent: \$${totalSpent.toStringAsFixed(2)}',
                 style: TextStyle(fontSize: 18)),
+            SizedBox(height: 10),
+            Text('Monthly Limit: \$${monthlyLimit.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 18, color: Colors.redAccent)),
             SizedBox(height: 20),
             Expanded(child: _buildTransactionList()),
           ],
@@ -132,6 +169,35 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             });
           },
           child: Text('Add Transaction'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLimitInput() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: limitController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Monthly Limit',
+              hintText: 'Enter the monthly limit',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        SizedBox(width: 10),
+        ElevatedButton(
+          onPressed: () {
+            double newLimit = double.tryParse(limitController.text) ?? monthlyLimit;
+            setState(() {
+              monthlyLimit = newLimit;
+            });
+            limitController.clear();
+          },
+          child: Text('Set Limit'),
         ),
       ],
     );
